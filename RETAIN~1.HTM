@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RETAIN Finance Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+
+        .header {
+            background-color: #2E75B6;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .container {
+            display: flex;
+            height: calc(100vh - 100px);
+        }
+
+        .sidebar {
+            width: 250px;
+            background-color: #f0f0f0;
+            padding: 20px;
+            border-right: 1px solid #ddd;
+            overflow-y: auto;
+        }
+
+        .sidebar h3 {
+            color: #2E75B6;
+            font-size: 14px;
+            margin-top: 15px;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+
+        .sidebar select, .sidebar input {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #ddd;
+        }
+
+        .tab-button {
+            padding: 12px 20px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            color: #666;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .tab-button.active {
+            color: #2E75B6;
+            border-bottom-color: #2E75B6;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .kpi-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .kpi-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-left: 4px solid #2E75B6;
+        }
+
+        .kpi-card h4 {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 8px;
+            font-weight: normal;
+        }
+
+        .kpi-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2E75B6;
+            margin-bottom: 8px;
+        }
+
+        .kpi-variance {
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .variance-up {
+            color: #d32f2f;
+        }
+
+        .variance-down {
+            color: #388e3c;
+        }
+
+        .chart-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            position: relative;
+            height: 400px;
+        }
+
+        .chart-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .table-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        th {
+            background-color: #2E75B6;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: bold;
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        tr:hover {
+            background-color: #f9f9f9;
+        }
+
+        .positive {
+            color: #388e3c;
+            font-weight: bold;
+        }
+
+        .negative {
+            color: #d32f2f;
+            font-weight: bold;
+        }
+
+        .neutral {
+            color: #666;
+        }
+
+        .gauge-container {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            margin: 0 auto;
+        }
+
+        .info-box {
+            background-color: #e3f2fd;
+            border-left: 4px solid #2E75B6;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        .reset-button {
+            padding: 10px 15px;
+            background-color: #2E75B6;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-top: 20px;
+            width: 100%;
+        }
+
+        .reset-button:hover {
+            background-color: #1565a0;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>RETAIN Finance Dashboard</h1>
+        <p>Monthly & Year-over-Year Financial Analytics</p>
+    </div>
+
+    <div class="container">
+        <div class="sidebar">
+            <h3>Filters</h3>
+
+            <h3 style="margin-top: 10px;">Month</h3>
+            <select id="monthSelect">
+                <option value="June 2026">June 2026 (Current)</option>
+                <option value="May 2026">May 2026</option>
+                <option value="April 2026">April 2026</option>
+            </select>
+
+            <h3>Project Type</h3>
+            <select id="projectType">
+                <option value="all">All Projects</option>
+                <option value="fixed">Fixed Price Only</option>
+                <option value="tm">T&M Only</option>
+            </select>
+
+            <h3>Department</h3>
+            <select id="department" multiple size="4">
+                <option value="all" selected>All Departments</option>
+                <option value="eng">Engineering</option>
+                <option value="design">Design</option>
+                <option value="qa">QA & Testing</option>
+                <option value="sales">Sales Eng</option>
+            </select>
+
+            <h3>Client</h3>
+            <select id="client">
+                <option value="all">All Clients</option>
+                <option value="a">ClientA</option>
+                <option value="b">ClientB</option>
+                <option value="c">ClientC</option>
+            </select>
+
+            <button class="reset-button">Reset Filters</button>
+        </div>
+
+        <div class="main-content">
+            <div class="tabs">
+                <button class="tab-button active" onclick="switchTab(0)">Page 1: Monthly Overview</button>
+                <button class="tab-button" onclick="switchTab(1)">Page 2: Budget Analysis</button>
+                <button class="tab-button" onclick="switchTab(2)">Page 3: Department Performance</button>
+                <button class="tab-button" onclick="switchTab(3)">Page 4: YoY Trends</button>
+                <button class="tab-button" onclick="switchTab(4)">Page 5: Cost Burn Analysis</button>
+            </div>
+
+            <!-- PAGE 1: Monthly Overview -->
+            <div id="page0" class="tab-content active">
+                <h2 style="margin-bottom: 20px;">Monthly Financial Overview</h2>
+
+                <div class="kpi-cards">
+                    <div class="kpi-card">
+                        <h4>Total Cost</h4>
+                        <div class="kpi-value">$1.2M</div>
+                        <div class="kpi-variance variance-up">vs LM: +8% ↑</div>
+                        <div class="kpi-variance variance-up">vs SMLY: +12% ↑</div>
+                    </div>
+                    <div class="kpi-card">
+                        <h4>Total Revenue</h4>
+                        <div class="kpi-value">$1.8M</div>
+                        <div class="kpi-variance variance-up">vs LM: +5% ↑</div>
+                        <div class="kpi-variance variance-up">vs SMLY: +18% ↑</div>
+                    </div>
+                    <div class="kpi-card">
+                        <h4>Gross Profit</h4>
+                        <div class="kpi-value">$600K</div>
+                        <div class="kpi-variance neutral">vs LM: +1%</div>
+                        <div class="kpi-variance positive">vs SMLY: +26% ↑</div>
+                    </div>
+                    <div class="kpi-card">
+                        <h4>Profit Margin %</h4>
+                        <div class="kpi-value">33.3%</div>
+                        <div class="kpi-variance variance-down">vs LM: -2pp ↓</div>
+                        <div class="kpi-variance positive">vs SMLY: +4pp ↑</div>
+                    </div>
+                    <div class="kpi-card">
+                        <h4>Budget Consumed %</h4>
+                        <div class="kpi-value">64%</div>
+                        <div class="kpi-variance variance-up">vs LM: +5pp ↑</div>
+                        <div class="kpi-variance neutral">Expected: 66%</div>
+                    </div>
+                    <div class="kpi-card">
+                        <h4>Daily Burn Rate</h4>
+                        <div class="kpi-value">$40K/day</div>
+                        <div class="kpi-variance variance-up">vs LM: +8% ↑</div>
+                        <div class="kpi-variance variance-up">vs SMLY: +12% ↑</div>
+                    </div>
+                </div>
+
+                <div class="two-column">
+                    <div class="chart-container">
+                        <div class="chart-title">Daily Cost Burn Rate (CTM vs LM)</div>
+                        <canvas id="burnChart"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <div class="chart-title">Revenue Trend (CTM vs LM vs SMLY)</div>
+                        <canvas id="revenueChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <div class="chart-title">Budget vs Actual by Project Type</div>
+                    <canvas id="budgetChart"></canvas>
+                </div>
+            </div>
+
+            <!-- PAGE 2: Budget Analysis -->
+            <div id="page1" class="tab-content">
+                <h2 style="margin-bottom: 20px;">Budget Performance & Consumption Analysis</h2>
+
+                <div class="info-box">
+                    <strong>Month-End Projection:</strong> At current $40K/day burn rate, you will consume <strong>$1.28M</strong> by month-end (4% over $1.2M budget). <strong>12 days remaining</strong> at budget limit.
+                </div>
+
+                <div class="chart-container" style="height: 300px;">
+                    <div class="chart-title">Budget Consumption Gauge</div>
+                    <canvas id="gaugeChart"></canvas>
+                </div>
+
+                <div class="table-container">
+                    <div class="chart-title" style="margin-bottom: 15px;">Cost Variance Analysis by Project (Top 10)</div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Project</th>
+                                <th>Budget</th>
+                                <th>Cost CTM</th>
+                                <th>Cost LM</th>
+                                <th>Variance %</th>
+                                <th>Status & Trend</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>ClientA - Phase 1</td>
+                                <td>$250K</td>
+                                <td>$180K</td>
+                                <td>$160K</td>
+                                <td class="positive">-28%</td>
+                                <td>✓ Under | ↑ +$20K</td>
+                            </tr>
+                            <tr>
+                                <td>ClientB - MVP</td>
+                                <td>$180K</td>
+                                <td>$195K</td>
+                                <td>$130K</td>
+                                <td class="negative">+8%</td>
+                                <td>⚠ Over | ↑ +$65K</td>
+                            </tr>
+                            <tr>
+                                <td>ClientC - Support</td>
+                                <td>$95K</td>
+                                <td>$78K</td>
+                                <td>$85K</td>
+                                <td class="positive">-18%</td>
+                                <td>✓ Under | ↓ -$7K</td>
+                            </tr>
+                            <tr>
+                                <td>ClientD - Portal</td>
+                                <td>$420K</td>
+                                <td>$398K</td>
+                                <td>$385K</td>
+                                <td class="positive">-5%</td>
+                                <td>✓ Under | ↑ +$13K</td>
+                            </tr>
+                            <tr>
+                                <td>ClientE - Tools</td>
+                                <td>$155K</td>
+                                <td>$172K</td>
+                                <td>$148K</td>
+                                <td class="negative">+11%</td>
+                                <td>⚠ Over | ↑ +$24K</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- PAGE 3: Department Performance -->
+            <div id="page2" class="tab-content">
+                <h2 style="margin-bottom: 20px;">Department / Team Performance</h2>
+
+                <div class="chart-container">
+                    <div class="chart-title">Cost by Department (CTM vs LM vs SMLY)</div>
+                    <canvas id="deptCostChart"></canvas>
+                </div>
+
+                <div class="table-container">
+                    <div class="chart-title" style="margin-bottom: 15px;">Department Metrics Summary</div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Department</th>
+                                <th>Cost CTM</th>
+                                <th>Cost LM</th>
+                                <th>Cost SMLY</th>
+                                <th>YoY %</th>
+                                <th>Revenue CTM</th>
+                                <th>Margin %</th>
+                                <th>Util %</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Engineering</td>
+                                <td>$580K</td>
+                                <td>$530K</td>
+                                <td>$520K</td>
+                                <td class="negative">+11.5%</td>
+                                <td>$820K</td>
+                                <td>41.5%</td>
+                                <td>87%</td>
+                            </tr>
+                            <tr>
+                                <td>Design</td>
+                                <td>$145K</td>
+                                <td>$130K</td>
+                                <td>$125K</td>
+                                <td class="negative">+16%</td>
+                                <td>$210K</td>
+                                <td>44.8%</td>
+                                <td>78%</td>
+                            </tr>
+                            <tr>
+                                <td>QA & Testing</td>
+                                <td>$95K</td>
+                                <td>$105K</td>
+                                <td>$92K</td>
+                                <td class="positive">+3%</td>
+                                <td>$140K</td>
+                                <td>47.1%</td>
+                                <td>82%</td>
+                            </tr>
+                            <tr>
+                                <td>Sales Eng</td>
+                                <td>$280K</td>
+                                <td>$260K</td>
+                                <td>$240K</td>
+                                <td class="negative">+16.7%</td>
+                                <td>$430K</td>
+                                <td>53.5%</td>
+                                <td>91%</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- PAGE 4: YoY Trends -->
+            <div id="page3" class="tab-content">
+                <h2 style="margin-bottom: 20px;">Year-over-Year Trend Analysis</h2>
+
+                <div class="two-column">
+                    <div class="chart-container">
+                        <div class="chart-title">Cost Trend: CY vs PY</div>
+                        <canvas id="costTrendChart"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <div class="chart-title">Revenue Trend: CY vs PY</div>
+                        <canvas id="revenueTrendChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <div class="chart-title">Margin % Trend: CY vs PY</div>
+                    <canvas id="marginTrendChart"></canvas>
+                </div>
+
+                <div class="table-container">
+                    <div class="chart-title" style="margin-bottom: 15px;">YoY Growth Summary</div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Month</th>
+                                <th>Cost CY</th>
+                                <th>Cost PY</th>
+                                <th>Revenue CY</th>
+                                <th>Revenue PY</th>
+                                <th>Growth Rate</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>January</td>
+                                <td>$950K</td>
+                                <td>$890K</td>
+                                <td>$1.4M</td>
+                                <td>$1.3M</td>
+                                <td>Cost +6.7% | Rev +7.7%</td>
+                            </tr>
+                            <tr>
+                                <td>February</td>
+                                <td>$1.1M</td>
+                                <td>$980K</td>
+                                <td>$1.6M</td>
+                                <td>$1.45M</td>
+                                <td>Cost +12.2% | Rev +10.3%</td>
+                            </tr>
+                            <tr>
+                                <td>March</td>
+                                <td>$1.25M</td>
+                                <td>$1.05M</td>
+                                <td>$1.8M</td>
+                                <td>$1.55M</td>
+                                <td>Cost +19% | Rev +16.1%</td>
+                            </tr>
+                            <tr>
+                                <td>April</td>
+                                <td>$1.08M</td>
+                                <td>$1.0M</td>
+                                <td>$1.55M</td>
+                                <td>$1.42M</td>
+                                <td>Cost +8% | Rev +9.2%</td>
+                            </tr>
+                            <tr>
+                                <td>May</td>
+                                <td>$1.11M</td>
+                                <td>$1.02M</td>
+                                <td>$1.71M</td>
+                                <td>$1.48M</td>
+                                <td>Cost +8.8% | Rev +15.5%</td>
+                            </tr>
+                            <tr>
+                                <td>June</td>
+                                <td>$1.2M</td>
+                                <td>$1.07M</td>
+                                <td>$1.8M</td>
+                                <td>$1.53M</td>
+                                <td>Cost +12.1% | Rev +17.6%</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- PAGE 5: Cost Burn Analysis -->
+            <div id="page4" class="tab-content">
+                <h2 style="margin-bottom: 20px;">Cost Burn Deep Dive & Resource Composition</h2>
+
+                <div class="two-column">
+                    <div class="chart-container">
+                        <div class="chart-title">Daily Burn Rate Progression (Day by Day)</div>
+                        <canvas id="dailyBurnChart"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <div class="chart-title">Cost Composition by Resource Type</div>
+                        <canvas id="compositionChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <div class="chart-title" style="margin-bottom: 15px;">Cost per Billable Hour Trend</div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Month</th>
+                                <th>Total Cost</th>
+                                <th>Billable Hours</th>
+                                <th>Cost per Hour</th>
+                                <th>vs Prior Month</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>CTM (June 2026)</td>
+                                <td>$1.2M</td>
+                                <td>28,571</td>
+                                <td class="negative">$42/hr</td>
+                                <td>+$2 (+5%)</td>
+                            </tr>
+                            <tr>
+                                <td>LM (May 2026)</td>
+                                <td>$1.11M</td>
+                                <td>27,750</td>
+                                <td>$40/hr</td>
+                                <td>+$1 (+2.6%)</td>
+                            </tr>
+                            <tr>
+                                <td>SMLY (June 2025)</td>
+                                <td>$1.07M</td>
+                                <td>28,159</td>
+                                <td class="positive">$38/hr</td>
+                                <td>--</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="table-container">
+                    <div class="chart-title" style="margin-bottom: 15px;">Resource Type Mix (CTM vs LM)</div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Resource Type</th>
+                                <th>Cost CTM</th>
+                                <th>% of Total</th>
+                                <th>Cost LM</th>
+                                <th>% of Total</th>
+                                <th>Mix Shift</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Senior Engineers</td>
+                                <td>$504K</td>
+                                <td>42%</td>
+                                <td>$443K</td>
+                                <td>40%</td>
+                                <td class="negative">+2pp</td>
+                            </tr>
+                            <tr>
+                                <td>Junior Engineers</td>
+                                <td>$336K</td>
+                                <td>28%</td>
+                                <td>$333K</td>
+                                <td>30%</td>
+                                <td class="positive">-2pp</td>
+                            </tr>
+                            <tr>
+                                <td>Contractors</td>
+                                <td>$240K</td>
+                                <td>20%</td>
+                                <td>$233K</td>
+                                <td>21%</td>
+                                <td class="positive">-1pp</td>
+                            </tr>
+                            <tr>
+                                <td>Other</td>
+                                <td>$120K</td>
+                                <td>10%</td>
+                                <td>$100K</td>
+                                <td>9%</td>
+                                <td class="negative">+1pp</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function switchTab(index) {
+            const tabs = document.querySelectorAll('.tab-content');
+            const buttons = document.querySelectorAll('.tab-button');
+
+            tabs.forEach(tab => tab.classList.remove('active'));
+            buttons.forEach(btn => btn.classList.remove('active'));
+
+            document.getElementById(`page${index}`).classList.add('active');
+            buttons[index].classList.add('active');
+
+            // Redraw charts when tab is visible
+            setTimeout(() => {
+                Object.values(window.charts || {}).forEach(chart => {
+                    if (chart && chart.resize) chart.resize();
+                });
+            }, 100);
+        }
+
+        window.charts = {};
+
+        // Burn Chart
+        const burnCtx = document.getElementById('burnChart').getContext('2d');
+        window.charts.burn = new Chart(burnCtx, {
+            type: 'line',
+            data: {
+                labels: ['Day 1', 'Day 5', 'Day 10', 'Day 15', 'Day 20', 'Day 25', 'Today'],
+                datasets: [
+                    {
+                        label: 'This Month (CTM)',
+                        data: [40, 210, 420, 630, 840, 1050, 1200],
+                        borderColor: '#d32f2f',
+                        backgroundColor: 'rgba(211, 47, 47, 0.05)',
+                        tension: 0.4,
+                        fill: true
+                    },
+                    {
+                        label: 'Last Month (LM)',
+                        data: [35, 185, 370, 555, 740, 925, 1110],
+                        borderColor: '#1976d2',
+                        borderDash: [5, 5],
+                        backgroundColor: 'rgba(25, 118, 210, 0)',
+                        tension: 0.4,
+                        fill: false
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'top' } },
+                scales: {
+                    y: { beginAtZero: true, title: { display: true, text: 'Cumulative Cost ($K)' } }
+                }
+            }
+        });
+
+        // Revenue Chart
+        const revCtx = document.getElementById('revenueChart').getContext('2d');
+        window.charts.revenue = new Chart(revCtx, {
+            type: 'line',
+            data: {
+                labels: ['Day 1', 'Day 5', 'Day 10', 'Day 15', 'Day 20', 'Day 25', 'Today'],
+                datasets: [
+                    {
+                        label: 'CTM',
+                        data: [60, 315, 630, 945, 1260, 1575, 1800],
+                        borderColor: '#1976d2',
+                        tension: 0.4
+                    },
+                    {
+                        label: 'LM',
+                        data: [50, 290, 580, 870, 1160, 1450, 1710],
+                        borderColor: '#1976d2',
+                        borderDash: [5, 5],
+                        tension: 0.4
+                    },
+                    {
+                        label: 'SMLY',
+                        data: [45, 250, 500, 750, 1000, 1250, 1530],
+                        borderColor: '#388e3c',
+                        borderDash: [5, 5],
+                        tension: 0.4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'top' } },
+                scales: { y: { beginAtZero: true } }
+            }
+        });
+
+        // Budget Chart
+        const budgCtx = document.getElementById('budgetChart').getContext('2d');
+        window.charts.budget = new Chart(budgCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Fixed Price', 'T&M'],
+                datasets: [
+                    { label: 'Budget', data: [800, 400], backgroundColor: '#1976d2' },
+                    { label: 'Actual CTM', data: [720, 480], backgroundColor: '#d32f2f' },
+                    { label: 'Actual LM', data: [660, 450], backgroundColor: '#ff9800' }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'top' } },
+                scales: { y: { beginAtZero: true } }
+            }
+        });
+
+        // Gauge Chart (using doughnut)
+        const gaugeCtx = document.getElementById('gaugeChart').getContext('2d');
+        window.charts.gauge = new Chart(gaugeCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Consumed (64%)', 'Remaining (36%)'],
+                datasets: [{
+                    data: [64, 36],
+                    backgroundColor: ['#d32f2f', '#e0e0e0']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom' } }
+            }
+        });
+
+        // Department Cost Chart
+        const deptCtx = document.getElementById('deptCostChart').getContext('2d');
+        window.charts.deptCost = new Chart(deptCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Engineering', 'Design', 'QA & Testing', 'Sales Eng'],
+                datasets: [
+                    { label: 'CTM', data: [580, 145, 95, 280], backgroundColor: '#d32f2f' },
+                    { label: 'LM', data: [530, 130, 105, 260], backgroundColor: '#ff9800' },
+                    { label: 'SMLY', data: [520, 125, 92, 240], backgroundColor: '#1976d2' }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'top' } },
+                scales: { y: { beginAtZero: true } }
+            }
+        });
+
+        // Cost Trend Chart
+        const costTrendCtx = document.getElementById('costTrendChart').getContext('2d');
+        window.charts.costTrend = new Chart(costTrendCtx, {
+            type: 'line',
+            data: {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                datasets: [
+                    { label: 'Current Year', data: [950, 1100, 1250, 1080, 1110, 1200], borderColor: '#d32f2f', tension: 0.4 },
+                    { label: 'Prior Year', data: [890, 980, 1050, 1000, 1020, 1070], borderColor: '#1976d2', borderDash: [5, 5], tension: 0.4 }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'top' } },
+                scales: { y: { beginAtZero: true } }
+            }
+        });
+
+        // Revenue Trend Chart
+        const revTrendCtx = document.getElementById('revenueTrendChart').getContext('2d');
+        window.charts.revTrend = new Chart(revTrendCtx, {
+            type: 'line',
+            data: {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                datasets: [
+                    { label: 'Current Year', data: [1400, 1600, 1800, 1550, 1710, 1800], borderColor: '#388e3c', tension: 0.4 },
+                    { label: 'Prior Year', data: [1300, 1450, 1550, 1420, 1480, 1530], borderColor: '#1976d2', borderDash: [5, 5], tension: 0.4 }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'top' } },
+                scales: { y: { beginAtZero: true } }
+            }
+        });
+
+        // Margin Trend Chart
+        const marginTrendCtx = document.getElementById('marginTrendChart').getContext('2d');
+        window.charts.marginTrend = new Chart(marginTrendCtx, {
+            type: 'line',
+            data: {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                datasets: [
+                    { label: 'Current Year', data: [32, 31, 30.5, 32.5, 35.3, 33.3], borderColor: '#2E75B6', tension: 0.4 },
+                    { label: 'Prior Year', data: [28, 29, 31, 30.5, 31.2, 31.0], borderColor: '#1976d2', borderDash: [5, 5], tension: 0.4 }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'top' } },
+                scales: { y: { beginAtZero: true, max: 40 } }
+            }
+        });
+
+        // Daily Burn Chart
+        const dailyBurnCtx = document.getElementById('dailyBurnChart').getContext('2d');
+        window.charts.dailyBurn = new Chart(dailyBurnCtx, {
+            type: 'bar',
+            data: {
+                labels: Array.from({length: 30}, (_, i) => `Day ${i+1}`),
+                datasets: [{
+                    label: 'Daily Burn',
+                    data: Array.from({length: 30}, () => 35 + Math.random() * 10),
+                    backgroundColor: '#d32f2f'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: false },
+                scales: { y: { beginAtZero: true } }
+            }
+        });
+
+        // Composition Chart
+        const compCtx = document.getElementById('compositionChart').getContext('2d');
+        window.charts.composition = new Chart(compCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Senior Eng (42%)', 'Junior Eng (28%)', 'Contractors (20%)', 'Other (10%)'],
+                datasets: [{
+                    data: [42, 28, 20, 10],
+                    backgroundColor: ['#d32f2f', '#ff9800', '#1976d2', '#4caf50']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'right' } }
+            }
+        });
+    </script>
+</body>
+</html>
